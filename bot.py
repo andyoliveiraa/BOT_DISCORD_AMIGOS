@@ -162,7 +162,7 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
     before_str = get_status_label(before.status)
     after_str = get_status_label(after.status)
 
-    msg = f"👤 {after.mention} ({after.name}) alterou o estado:\nDe {before_str} para {after_str}."
+    msg = f"👤 **{after.display_name}** alterou o estado:\nDe {before_str} para {after_str}."
     
     # Store in-memory status logs for the dashboard
     log_entry = {
@@ -194,7 +194,7 @@ async def on_member_remove(member: discord.Member):
             print(f"Erro ao obter o canal {STATUS_CHANNEL_ID} no evento on_member_remove: {e}")
             return
 
-    msg = f"❌ **{member.name}** ({member.mention}) saiu do servidor."
+    msg = f"❌ **{member.display_name}** saiu do servidor."
     
     # Store leave update in history log
     log_entry = {
