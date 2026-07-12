@@ -60,20 +60,30 @@ async def on_ready():
     except Exception as e:
         print(f"Erro ao sincronizar comandos: {e}")
 
-    # List online members in all connected guilds on console
-    print("\n[Membros Atualmente Online nos Servidores]:")
+    # Chunk guilds to load all members and cache presences from gateway
+    print("\nA carregar presenças e membros dos servidores...")
+    for guild in bot.guilds:
+        try:
+            await guild.chunk()
+            print(f"✓ Membros de '{guild.name}' carregados com sucesso.")
+        except Exception as e:
+            print(f"⚠ Erro ao carregar membros de '{guild.name}': {e}")
+
+    # List ALL members (including offline ones) in all connected guilds on console
+    print("\n[Lista Completa de Membros nos Servidores]:")
     for guild in bot.guilds:
         print(f"Servidor: {guild.name} (ID: {guild.id})")
-        online_count = 0
+        members_count = 0
         for member in guild.members:
             if member.bot:
                 continue
-            if member.status != discord.Status.offline:
-                online_count += 1
-                print(f"  - {member.name} ({member.status})")
-        if online_count == 0:
-            print("  - Nenhum utilizador online de momento (ou presenças não carregadas ainda).")
+            members_count += 1
+            status_label = get_status_label(member.status)
+            print(f"  - {member.name} ({status_label})")
+        if members_count == 0:
+            print("  - Nenhum membro encontrado neste servidor.")
     print(f"==================================================\n")
+
 
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
