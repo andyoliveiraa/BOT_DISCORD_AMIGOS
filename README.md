@@ -11,9 +11,25 @@ Um bot moderno, rápido e robusto para o Discord escrito em Python (`discord.py`
     *   🌙 **Ausente (Idle)**
     *   ⛔ **Não Perturbar (DND)**
     *   ⚫ **Invisível / Offline**
-*   ❌ **Alertas de Saída**: Notifica o canal imediatamente quando um membro sai do servidor.
+*   ❌ **Alertas de Saída**: Notifica o canal imediatamente quando um membro sai do servidor (sem pings para evitar ruído).
+*   💜 **Dashboard Web (Porta 3026)**: Um painel online com design moderno em tons de preto e roxo para monitorizar os utilizadores, consultar as estatísticas e ver o histórico de atualizações detalhado.
 *   💬 **Comando Slash `/online`**: Lista todos os utilizadores online de forma limpa e organizada dentro do Discord utilizando embeds visuais.
-*   💻 **Registo no Terminal**: Apresenta uma tabela/lista no terminal ao iniciar com todos os utilizadores online.
+*   💻 **Registo no Terminal**: Apresenta uma tabela/lista no terminal ao iniciar com todos os utilizadores online e offline carregados do cache do gateway.
+
+---
+
+## 📊 Dashboard Web (Porta 3026) 💜
+
+O bot inclui um servidor web integrado que roda automaticamente na porta `3026` juntamente com o cliente do Discord.
+
+### Funcionalidades do Dashboard:
+*   **Estatísticas Gerais**: Exibe o total de utilizadores registados, membros online e offline de forma visual.
+*   **Barra de Pesquisa**: Permite filtrar e procurar qualquer membro do servidor instantaneamente pelo nome.
+*   **Filtro Individual de Histórico**: Clique no cartão de qualquer utilizador para destacar a sua informação e filtrar a linha de tempo de atividades para ver **apenas** quando esse utilizador específico alterou o seu estado.
+*   **Linha de Tempo Detalhada**: Histórico de logs detalhado com a data e hora local do utilizador exata.
+
+Para aceder, basta abrir o seu navegador e entrar em:
+`http://localhost:3026` (ou `http://IP_DA_SUA_VPS:3026` se o bot estiver na VPS).
 
 ---
 
@@ -65,13 +81,14 @@ Com as dependências instaladas e o ficheiro `.env` devidamente preenchido, exec
 python bot.py
 ```
 
-Assim que ligar, verá no terminal a confirmação de sincronização dos comandos slash e a lista inicial de membros online.
+Assim que ligar, o bot sincronizará os comandos slash, listará os membros no terminal e o servidor web na porta `3026` ficará imediatamente disponível.
 
 ---
 
 ## 📁 Estrutura do Projeto
 
-*   `bot.py`: O código principal do bot com os eventos (`on_presence_update`, `on_member_remove`) e o comando slash `/online`.
+*   `bot.py`: O código principal do bot com os eventos (`on_presence_update`, `on_member_remove`), o comando slash `/online` e o servidor web `aiohttp`.
+*   `index.html`: A página do dashboard web com o design roxo e preto.
 *   `.env`: Ficheiro local de chaves privadas (ignorado pelo Git).
 *   `.env.example`: Modelo de configuração das chaves de ambiente.
 *   `requirements.txt`: Dependências do projeto.
