@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOT_DISCORD_AMIGOS - Dashboard</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #08070B;
+            --card-bg: #12101A;
+            --card-hover: #191726;
+            --primary: #9D4EDD;
+            --primary-glow: rgba(157, 78, 221, 0.4);
+            --secondary: #7F5AF0;
+            --text-main: #F2EFFF;
+            --text-muted: #948FAD;
+            
+            --status-online: #10B981;
+            --status-idle: #F59E0B;
+            --status-dnd: #EF4444;
+            --status-offline: #6B7280;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #232033;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Header */
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid #1E1A2F;
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .bot-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .logo-title h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #D8B4FE, #818CF8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-title p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .bot-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #34D399;
+        }
+
+        .status-dot-pulse {
+            width: 8px;
+            height: 8px;
+            background-color: var(--status-online);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .status-dot-pulse::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: var(--status-online);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+
+        /* Container Layout */
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Panel - Members List & Stats */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-card {
+            background-color: var(--card-bg);
+            border: 1px solid #1E1A2F;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+
+        .stat-item {
+            background: #181524;
+            border-radius: 12px;
+            padding: 0.75rem;
+            text-align: center;
+            border: 1px solid #231E38;
+        }
+
+        .stat-num {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+
+        /* Search input styling */
+        .search-container {
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: #1A1726;
+            border: 1px solid #2D274A;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-family: inherit;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        .members-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .members-title-row h2 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        /* Member Card Item */
+        .member-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #181524;
+            border: 1px solid #231E38;
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .member-item:hover {
+            background-color: var(--card-hover);
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .member-item.active {
+            border-color: var(--primary);
+            background: #201A33;
+            box-shadow: 0 0 10px rgba(157, 78, 221, 0.2);
+        }
+
+        .member-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .member-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid transparent;
+        }
+
+        .member-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .member-display {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .status-badge.online {
+            color: var(--status-online);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .status-badge.idle {
+            color: var(--status-idle);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .status-badge.dnd {
+            color: var(--status-dnd);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .status-badge.offline {
+            color: var(--status-offline);
+            background: rgba(107, 114, 128, 0.1);
+        }
+
+        .status-circle {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .status-circle.online { background-color: var(--status-online); }
+        .status-circle.idle { background-color: var(--status-idle); }
+        .status-circle.dnd { background-color: var(--status-dnd); }
+        .status-circle.offline { background-color: var(--status-offline); }
+
+
+        /* Right Panel - Activity Logs */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid #1E1A2F;
+            padding-bottom: 0.75rem;
+        }
+
+        .log-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .clear-filter-btn {
+            background: rgba(157, 78, 221, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--text-main);
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: none; /* Hidden unless filter active */
+        }
+
+        .clear-filter-btn:hover {
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 630px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .timeline-item {
+            position: relative;
+            background: #181524;
+            border: 1px solid #231E38;
+            padding: 1rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .timeline-item:hover {
+            border-color: #2D274A;
+        }
+
+        .timeline-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .timeline-content {
+            flex-grow: 1;
+        }
+
+        .timeline-user {
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .timeline-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .badge-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .empty-timeline {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-section">
+            <img id="bot-avatar" class="bot-avatar" src="" alt="Avatar do Bot" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+            <div class="logo-title">
+                <h1 id="bot-name">BOT_DISCORD_AMIGOS</h1>
+                <p>Monitorização de Presença Ativa</p>
+            </div>
+        </div>
+        <div class="bot-status">
+            <div class="status-dot-pulse"></div>
+            <span>Bot Online</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Left Panel: Stats and Members -->
+        <div class="left-panel">
+            <!-- Stats -->
+            <div class="panel-card">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div id="stat-total" class="stat-num">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="stat-online" class="stat-num" style="color: var(--status-online);">0</div>
+                        <div class="stat-label">Online</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="stat-offline" class="stat-num" style="color: var(--text-muted);">0</div>
+                        <div class="stat-label">Offline</div>
+                    </div>
+                </div>
+
+                <div class="search-container">
+                    <input type="text" id="search-bar" class="search-input" placeholder="Pesquisar utilizador..." oninput="filterMembers()">
+                </div>
+            </div>
+
+            <!-- Members List -->
+            <div class="panel-card" style="flex-grow: 1; display: flex; flex-direction: column;">
+                <div class="members-title-row">
+                    <h2>Membros do Servidor</h2>
+                </div>
+                <div id="members-list" class="members-list">
+                    <!-- Dynamic Member items go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Timeline History -->
+        <div class="right-panel">
+            <div class="panel-card" style="height: 100%; display: flex; flex-direction: column;">
+                <div class="log-header">
+                    <h2 id="timeline-title">📝 Histórico de Atividade</h2>
+                    <button id="clear-filter-btn" class="clear-filter-btn" onclick="clearUserFilter()">Ver Todos</button>
+                </div>
+                <div id="timeline" class="timeline">
+                    <!-- Dynamic timeline logs go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedUserId = null;
+        let membersCached = [];
+        let historyCached = [];
+
+        // Map status to badges
+        const STATUS_BADGES = {
+            'online': '<span class="status-badge online"><span class="status-circle online"></span>Online</span>',
+            'idle': '<span class="status-badge idle"><span class="status-circle idle"></span>Ausente</span>',
+            'dnd': '<span class="status-badge dnd"><span class="status-circle dnd"></span>DND</span>',
+            'offline': '<span class="status-badge offline"><span class="status-circle offline"></span>Offline</span>',
+            'left': '<span class="status-badge dnd"><span class="status-circle dnd"></span>Saiu</span>'
+        };
+
+        const STATUS_LABELS_PLAIN = {
+            'online': '<span class="badge-inline" style="color: var(--status-online);">🟢 Online</span>',
+            'idle': '<span class="badge-inline" style="color: var(--status-idle);">🌙 Ausente</span>',
+            'dnd': '<span class="badge-inline" style="color: var(--status-dnd);">⛔ Não Perturbar</span>',
+            'offline': '<span class="badge-inline" style="color: var(--status-offline);">⚫ Offline / Invisível</span>',
+            'left': '<span class="badge-inline" style="color: var(--status-dnd);">❌ Saiu do Servidor</span>'
+        };
+
+        // Format dates into readable localized format
+        function formatDateTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('pt-PT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (!response.ok) throw new Error('Erro ao obter os dados da API');
+                
+                const data = await response.json();
+                
+                // Update header info
+                document.getElementById('bot-name').innerText = data.bot_name;
+                if (data.bot_avatar_url) {
+                    document.getElementById('bot-avatar').src = data.bot_avatar_url;
+                }
+
+                // Process guild data
+                if (data.guilds && data.guilds.length > 0) {
+                    const guild = data.guilds[0]; // Display the first guild
+                    membersCached = guild.members || [];
+                } else {
+                    membersCached = [];
+                }
+
+                historyCached = data.history || [];
+
+                // Render components
+                updateStats();
+                renderMembers();
+                renderTimeline();
+            } catch (err) {
+                console.error("Erro na atualização do dashboard:", err);
+            }
+        }
+
+        function updateStats() {
+            const total = membersCached.length;
+            const online = membersCached.filter(m => m.status !== 'offline').length;
+            const offline = total - online;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-online').innerText = online;
+            document.getElementById('stat-offline').innerText = offline;
+        }
+
+        function renderMembers() {
+            const listEl = document.getElementById('members-list');
+            const searchVal = document.getElementById('search-bar').value.toLowerCase();
+            
+            // Filter members matching search query
+            const filtered = membersCached.filter(m => 
+                m.name.toLowerCase().includes(searchVal) || 
+                (m.display_name && m.display_name.toLowerCase().includes(searchVal))
+            );
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="empty-timeline">Nenhum membro encontrado.</div>';
+                return;
+            }
+
+            // Sort: Online members first, then alphabetical
+            filtered.sort((a, b) => {
+                if (a.status !== 'offline' && b.status === 'offline') return -1;
+                if (a.status === 'offline' && b.status !== 'offline') return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            let html = '';
+            filtered.forEach(member => {
+                const isActive = member.id === selectedUserId ? 'active' : '';
+                const displayName = member.display_name || member.name;
+                const badge = STATUS_BADGES[member.status] || STATUS_BADGES['offline'];
+                const avatar = member.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+                html += `
+                    <div class="member-item ${isActive}" onclick="selectUser('${member.id}', '${displayName}')">
+                        <div class="member-info">
+                            <img class="member-avatar" src="${avatar}" alt="" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                            <div>
+                                <div class="member-name">${displayName}</div>
+                                <div class="member-display">@${member.name}</div>
+                            </div>
+                        </div>
+                        ${badge}
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
+
+        function renderTimeline() {
+            const timelineEl = document.getElementById('timeline');
+            const clearBtn = document.getElementById('clear-filter-btn');
+
+            // Filter history by selected user if active
+            let logs = historyCached;
+            if (selectedUserId) {
+                logs = historyCached.filter(log => log.user_id === selectedUserId);
+                clearBtn.style.display = 'block';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+
+            if (logs.length === 0) {
+                timelineEl.innerHTML = '<div class="empty-timeline">Sem registos de atividade recentes.</div>';
+                return;
+            }
+
+            // Sort logs: newest first
+            const sortedLogs = [...logs].reverse();
+
+            let html = '';
+            sortedLogs.forEach(log => {
+                const avatar = log.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
+                const formattedTime = formatDateTime(log.timestamp);
+                
+                let text = '';
+                if (log.new_status === 'left') {
+                    text = `saiu do servidor.`;
+                } else {
+                    const oldLabel = STATUS_LABELS_PLAIN[log.old_status] || log.old_status;
+                    const newLabel = STATUS_LABELS_PLAIN[log.new_status] || log.new_status;
+                    text = `alterou o estado de ${oldLabel} para ${newLabel}.`;
+                }
+
+                html += `
+                    <div class="timeline-item">
+                        <img class="timeline-avatar" src="${avatar}" alt="" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                        <div class="timeline-content">
+                            <div class="timeline-user">${log.user_name}</div>
+                            <div class="timeline-text">${text}</div>
+                            <div class="timeline-time">
+                                📅 ${formattedTime}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            timelineEl.innerHTML = html;
+        }
+
+        function filterMembers() {
+            renderMembers();
+        }
+
+        function selectUser(userId, displayName) {
+            if (selectedUserId === userId) {
+                // Toggle off if clicked again
+                clearUserFilter();
+                return;
+            }
+            selectedUserId = userId;
+            document.getElementById('timeline-title').innerText = `📝 Histórico de: ${displayName}`;
+            renderMembers();
+            renderTimeline();
+        }
+
+        function clearUserFilter() {
+            selectedUserId = null;
+            document.getElementById('timeline-title').innerText = '📝 Histórico de Atividade';
+            renderMembers();
+            renderTimeline();
+        }
+
+        // Start polling
+        fetchStatus();
+        setInterval(fetchStatus, 2000);
+    </script>
+</body>
+</html>

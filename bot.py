@@ -1,8 +1,10 @@
 import os
 import discord
+import datetime
 from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
+from aiohttp import web
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,6 +34,7 @@ intents.guilds = True
 
 # Initialize Bot
 bot = commands.Bot(command_prefix="!", intents=intents)
+bot.status_history = []  # Store status change logs in-memory
 
 # Emojis for each status
 STATUS_EMOJIS = {
@@ -43,6 +46,63 @@ STATUS_EMOJIS = {
 
 def get_status_label(status):
     return STATUS_EMOJIS.get(status, f"❓ **{status}**")
+
+# Web Server Endpoints & Handlers
+async def handle_index(request):
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        return web.Response(text=html, content_type='text/html')
+    except Exception as e:
+        return web.Response(text=f"Erro ao carregar o dashboard: {e}", status=500)
+
+async def handle_api_status(request):
+    guilds_data = []
+    for guild in bot.guilds:
+        members_data = []
+        for member in guild.members:
+            if member.bot:
+                continue
+            members_data.append({
+                "id": str(member.id),
+                "name": member.name,
+                "display_name": member.display_name,
+                "status": str(member.status),
+                "avatar_url": str(member.display_avatar.url) if member.display_avatar else None
+            })
+        guilds_data.append({
+            "id": str(guild.id),
+            "name": guild.name,
+            "member_count": guild.member_count,
+            "members": members_data
+        })
+    
+    data = {
+        "bot_name": bot.user.name if bot.user else "Bot",
+        "bot_id": str(bot.user.id) if bot.user else "",
+        "bot_avatar_url": str(bot.user.display_avatar.url) if bot.user and bot.user.display_avatar else "",
+        "guilds": guilds_data,
+        "history": bot.status_history
+    }
+    return web.json_response(data)
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get('/', handle_index)
+    app.router.add_get('/api/status', handle_api_status)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 3026)
+    await site.start()
+    print("==================================================")
+    print("Dashboard Web online em http://localhost:3026")
+    print("==================================================")
+
+# Override Bot.setup_hook to launch the web server inside the event loop
+async def setup_hook():
+    bot.loop.create_task(start_web_server())
+
+bot.setup_hook = setup_hook
 
 @bot.event
 async def on_ready():
@@ -84,7 +144,6 @@ async def on_ready():
             print("  - Nenhum membro encontrado neste servidor.")
     print(f"==================================================\n")
 
-
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
     # Only notify if status changed (Online, Idle, DND, Offline)
@@ -105,6 +164,19 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
 
     msg = f"👤 {after.mention} ({after.name}) alterou o estado:\nDe {before_str} para {after_str}."
     
+    # Store in-memory status logs for the dashboard
+    log_entry = {
+        "user_name": after.name,
+        "user_id": str(after.id),
+        "avatar_url": str(after.display_avatar.url) if after.display_avatar else "",
+        "old_status": str(before.status),
+        "new_status": str(after.status),
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    bot.status_history.append(log_entry)
+    if len(bot.status_history) > 100:
+        bot.status_history.pop(0)
+
     try:
         await channel.send(msg)
         print(f"[Presença] {after.name} mudou de {before.status} para {after.status} (Notificado).")
@@ -124,6 +196,19 @@ async def on_member_remove(member: discord.Member):
 
     msg = f"❌ **{member.name}** ({member.mention}) saiu do servidor."
     
+    # Store leave update in history log
+    log_entry = {
+        "user_name": member.name,
+        "user_id": str(member.id),
+        "avatar_url": str(member.display_avatar.url) if member.display_avatar else "",
+        "old_status": "",
+        "new_status": "left",
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    bot.status_history.append(log_entry)
+    if len(bot.status_history) > 100:
+        bot.status_history.pop(0)
+
     try:
         await channel.send(msg)
         print(f"[Saída] {member.name} saiu do servidor (Notificado).")
