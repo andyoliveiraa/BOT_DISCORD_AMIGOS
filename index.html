@@ -546,6 +546,45 @@
             });
         }
 
+        function buildPlatformIcons(platforms) {
+            if (!platforms) return '';
+            let html = '';
+            
+            const paths = {
+                desktop: {
+                    name: 'PC',
+                    d: 'M4 2.5c-1.103 0-2 .897-2 2v11c0 1.104.897 2 2 2h7v2H7v2h10v-2h-4v-2h7c1.103 0 2-.896 2-2v-11c0-1.103-.897-2-2-2H4Zm16 2v9H4v-9h16Z'
+                },
+                mobile: {
+                    name: 'Telemóvel',
+                    d: 'M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 18c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'
+                },
+                web: {
+                    name: 'Web',
+                    d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93Zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39Z'
+                },
+                embedded: {
+                    name: 'Consola',
+                    d: 'M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm3-3c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'
+                }
+            };
+
+            Object.entries(platforms).forEach(([platform, status]) => {
+                const info = paths[platform];
+                if (!info || status === 'offline') return;
+                
+                const statusColor = `var(--status-${status})`;
+                html += `
+                    <svg class="platform-icon" style="fill: ${statusColor}; margin-left: 6px; vertical-align: middle; filter: drop-shadow(0 0 3px ${statusColor}44);" width="14" height="14" viewBox="0 0 24 24" title="${info.name}: ${status}">
+                        <title>${info.name}: ${status}</title>
+                        <path d="${info.d}" />
+                    </svg>
+                `;
+            });
+
+            return html;
+        }
+
         async function fetchStatus() {
             try {
                 const response = await fetch('/api/status');
@@ -616,6 +655,7 @@
                 const displayName = member.display_name || member.name;
                 const badge = STATUS_BADGES[member.status] || STATUS_BADGES['offline'];
                 const avatar = member.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
+                const platformIcons = buildPlatformIcons(member.platforms);
 
                 html += `
                     <div class="member-item ${isActive}" onclick="selectUser('${member.id}', '${displayName}')">
@@ -623,7 +663,10 @@
                             <img class="member-avatar" src="${avatar}" alt="" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
                             <div>
                                 <div class="member-name">${displayName}</div>
-                                <div class="member-display">@${member.name}</div>
+                                <div class="member-display" style="display: flex; align-items: center;">
+                                    @${member.name}
+                                    ${platformIcons}
+                                </div>
                             </div>
                         </div>
                         ${badge}
@@ -658,6 +701,7 @@
             sortedLogs.forEach(log => {
                 const avatar = log.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
                 const formattedTime = formatDateTime(log.timestamp);
+                const platformIcons = buildPlatformIcons(log.platforms);
                 
                 let text = '';
                 if (log.new_status === 'left') {
@@ -665,7 +709,7 @@
                 } else {
                     const oldLabel = STATUS_LABELS_PLAIN[log.old_status] || log.old_status;
                     const newLabel = STATUS_LABELS_PLAIN[log.new_status] || log.new_status;
-                    text = `alterou o estado de ${oldLabel} para ${newLabel}.`;
+                    text = `alterou o estado de ${oldLabel} para ${newLabel} ${platformIcons}`;
                 }
 
                 html += `

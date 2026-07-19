@@ -6,6 +6,104 @@ from discord import app_commands
 from dotenv import load_dotenv
 from aiohttp import web
 
+# Monkey patch discord.ClientStatus to support embedded/console platform
+import discord.presences
+from discord.enums import try_enum, Status
+
+class CustomClientStatus:
+    def __init__(self, *, status='offline', data=None):
+        self._status = status or 'offline'
+        data = data or {}
+        self.desktop = data.get('desktop')
+        self.mobile = data.get('mobile')
+        self.web = data.get('web')
+        self.embedded = data.get('embedded')
+
+    def __repr__(self):
+        attrs = [
+            ('_status', self._status),
+            ('desktop', self.desktop),
+            ('mobile', self.mobile),
+            ('web', self.web),
+            ('embedded', self.embedded),
+        ]
+        inner = ' '.join('%s=%r' % t for t in attrs)
+        return f'<ClientStatus {inner}>'
+
+    def _update(self, status, data, /):
+        self._status = status
+        self.desktop = data.get('desktop')
+        self.mobile = data.get('mobile')
+        self.web = data.get('web')
+        self.embedded = data.get('embedded')
+
+    @classmethod
+    def _copy(cls, client_status, /):
+        self = cls.__new__(cls)
+        self._status = client_status._status
+        self.desktop = client_status.desktop
+        self.mobile = client_status.mobile
+        self.web = client_status.web
+        self.embedded = getattr(client_status, 'embedded', None)
+        return self
+
+    @property
+    def status(self):
+        return try_enum(Status, self._status)
+
+    @property
+    def raw_status(self):
+        return self._status
+
+    @property
+    def mobile_status(self):
+        return try_enum(Status, self.mobile or 'offline')
+
+    @property
+    def desktop_status(self):
+        return try_enum(Status, self.desktop or 'offline')
+
+    @property
+    def web_status(self):
+        return try_enum(Status, self.web or 'offline')
+
+    @property
+    def embedded_status(self):
+        return try_enum(Status, self.embedded or 'offline')
+
+    def is_on_mobile(self):
+        return self.mobile is not None
+
+discord.presences.ClientStatus = CustomClientStatus
+discord.ClientStatus = CustomClientStatus
+
+def get_member_platforms(member):
+    platforms = []
+    cs = member.client_status
+    if getattr(cs, 'desktop', None) and cs.desktop != 'offline':
+        platforms.append('PC')
+    if getattr(cs, 'mobile', None) and cs.mobile != 'offline':
+        platforms.append('Telemóvel')
+    if getattr(cs, 'web', None) and cs.web != 'offline':
+        platforms.append('Web')
+    if getattr(cs, 'embedded', None) and cs.embedded != 'offline':
+        platforms.append('Consola')
+    return platforms
+
+def get_member_platforms_dict(member):
+    platforms = {}
+    cs = member.client_status
+    if getattr(cs, 'desktop', None) and cs.desktop != 'offline':
+        platforms['desktop'] = str(cs.desktop)
+    if getattr(cs, 'mobile', None) and cs.mobile != 'offline':
+        platforms['mobile'] = str(cs.mobile)
+    if getattr(cs, 'web', None) and cs.web != 'offline':
+        platforms['web'] = str(cs.web)
+    if getattr(cs, 'embedded', None) and cs.embedded != 'offline':
+        platforms['embedded'] = str(cs.embedded)
+    return platforms
+
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -68,6 +166,7 @@ async def handle_api_status(request):
                 "name": member.name,
                 "display_name": member.display_name,
                 "status": str(member.status),
+                "platforms": get_member_platforms_dict(member),
                 "avatar_url": str(member.display_avatar.url) if member.display_avatar else None
             })
         guilds_data.append({
@@ -139,7 +238,9 @@ async def on_ready():
                 continue
             members_count += 1
             status_label = get_status_label(member.status)
-            print(f"  - {member.name} ({status_label})")
+            platforms = get_member_platforms(member)
+            plat_str = f" [{', '.join(platforms)}]" if platforms else ""
+            print(f"  - {member.name} ({status_label}){plat_str}")
         if members_count == 0:
             print("  - Nenhum membro encontrado neste servidor.")
     print(f"==================================================\n")
@@ -162,7 +263,10 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
     before_str = get_status_label(before.status)
     after_str = get_status_label(after.status)
 
-    msg = f"👤 **{after.display_name}** alterou o estado:\nDe {before_str} para {after_str}."
+    # Get platforms
+    platforms = get_member_platforms(after)
+    plat_str = f" (via {', '.join(platforms)})" if platforms and after.status != discord.Status.offline else ""
+    msg = f"👤 **{after.display_name}** alterou o estado:\nDe {before_str} para {after_str}{plat_str}."
     
     # Store in-memory status logs for the dashboard
     log_entry = {
@@ -171,6 +275,7 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
         "avatar_url": str(after.display_avatar.url) if after.display_avatar else "",
         "old_status": str(before.status),
         "new_status": str(after.status),
+        "platforms": get_member_platforms_dict(after),
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
     bot.status_history.append(log_entry)
@@ -179,7 +284,7 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
 
     try:
         await channel.send(msg)
-        print(f"[Presença] {after.name} mudou de {before.status} para {after.status} (Notificado).")
+        print(f"[Presença] {after.name} mudou de {before.status} para {after.status}{plat_str} (Notificado).")
     except Exception as e:
         print(f"Erro ao enviar mensagem de status para o canal: {e}")
 
